@@ -26,7 +26,17 @@
 *.a
 *.lib
 
+# VSCdode Settings
+*.vscode
+*.json
+__pycache__
+*.DS_Store
+
+#supercomputer output files
+*.err
+
 # Executables
 *.exe
 *.out
 *.app
+./main
