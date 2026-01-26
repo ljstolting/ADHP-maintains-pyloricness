@@ -1,0 +1,23 @@
+This folder contains the set of circuit evolutions that were performed including timing awards on top of the
+ordering criteria:
+
+1.  All neurons silent before LPstart
+2.	PYstart < LPend
+3.	LPend < PYend
+
+To calculate timing awards, utilized statistics published by Prinz et al. (2004) in 'Similar network activiy 
+from disparate circuit parameters' (Table 1), expressed as a fraction of the total period:
+PD duty cycle: mean = .385, s.d. = .040
+LP duty cycle: mean = .264, s.d. = .059
+PY duty cycle: mean = .348, s.d. = .054
+LP start phase (offset from PDstart): mean = .533, s.d. = .054
+PY start phase (offset from PDstart): mean = .758, s.d. = .060
+Each of these five features were calculated for a candidate rhythm, then the z-score was calculated as if it came
+from the experimentally observed distribution. The z-scores were averaged, inverted and added to fitness. 
+
+
+Only the following sub-ordering type was represented among evolved circuits:
+
+- 0. 2. 1. 4. 3. 5.
+
+(where LPstart=0, LPend=1, PYstart=2, PYend=3, PDstart=4, PDend=5)
