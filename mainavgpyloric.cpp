@@ -1,14 +1,10 @@
-//Update 8/13/25: If the intention of this program is to predict ADHP performance
-//  around select bound values, then all data doesn't need to be saved. Only the
-//  ongoing successful/mixed/failure status of the points on a more conservative grid. 
-//  There is now a new mode that calculates this online instead of collecting all the
-//  data and feeding it to a Jupyter notebook. 
-
-//Update 8/20/25: This less data-intense way of calculating is getting things closer
-//  (even though in principle it should have no effect...) but the predicted performances 
-//  in 3D are still not agreeing with simulation. To debug, I am adding a mode that identifies
-//  a point of interest, runs averages on the whole volume, but only collects data about 
-//  configurations that would average into that point. 
+//------------------------------------------------------
+// Gather data needed to predict ADHP performance
+// Simultaneously records the average value (see expression 7)
+// and the pyloric fitness of each circuit on a specified grid
+// in parameter space (centered at evolved pyloric solution)
+// 
+//------------------------------------------------------
 
 #include "TSearch.h"
 #include "CTRNN.h"
