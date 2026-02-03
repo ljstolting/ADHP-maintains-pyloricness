@@ -1,11 +1,8 @@
 // ***********************************************************
-// A class for continuous-time recurrent neural networks
-//
-// RDB
-//  8/94 Created
-//  12/98 Optimized integration
-//  1/08 Added table-based fast sigmoid w/ linear interpolation
+// CTRNN class with ADHP
 // ************************************************************
+#ifndef CTRNN_h
+#define CTRNN_h
 
 // Uncomment the following line for table-based fast sigmoid w/ linear interpolation
 //#define FAST_SIGMOID
@@ -14,9 +11,6 @@
 #include "random.h"
 #include <iostream>
 #include <math.h>
-
-#pragma once
-
 
 // The sigmoid function
 
@@ -41,7 +35,6 @@ inline double sigmoid(double x)
 #endif
 }
 
-
 // The inverse sigmoid function
 
 inline double InverseSigmoid(double y)
@@ -49,9 +42,10 @@ inline double InverseSigmoid(double y)
   return log(y/(1-y));
 }
 
+void getNumNeuronsPlastic(TVector<int>& plastic_neurons, TVector<int>& plasticpars,int N);
+
 
 // The CTRNN class declaration
-
 class CTRNN {
     public:
         // The constructor
@@ -61,7 +55,7 @@ class CTRNN {
 
         // Accessors
         int CircuitSize(void) {return size;};
-        void SetCircuitSize(int newsize);
+        void SetCircuitSize(int newsize); //called in constructor/destructor
         double NeuronState(int i) {return states[i];};
         double &NeuronStateReference(int i) {return states[i];};
         void SetNeuronState(int i, double value)
@@ -81,30 +75,9 @@ class CTRNN {
         void SetNeuronExternalInput(int i, double value) {externalinputs[i] = value;};
         double ConnectionWeight(int from, int to) {return weights[from][to];};
         void SetConnectionWeight(int from, int to, double value) {weights[from][to] = value;};
-        // --NEW FOR GENERAL HP MECHANISM: the arbitrary dimension parameters which are subject
-        //                                 to change are indexed from 1 through num in the order
-        //                                 to which they are referred in the plasticpars vector
-        //                                 (biases then weights in from-to order)
-        void SetArbDParam(int i, double value) {
-          int par_index = 0;
-          int k = 0;
-          while (k < i){
-            par_index++;
-            if (plasticitypars(par_index) == 1){
-              k++;
-            }
-          }
-          if (par_index <= size){
-            SetNeuronBias(par_index,value);
-          }
-          else{
-            par_index --; //treat as if were zero indexing
-            int from = floor(par_index/size); //comes out in one indexing because of the biases
-            int to = par_index % size;
-            to ++; //change to one indexing
-            SetConnectionWeight(from,to,value);
-          }
-        }
+
+        //"ArbDParam": arbitrary dimension parameter, way to map between list of ADHP controlled 
+        // parameters and their identity within the circuit
         double ArbDParam(int i) {
           int par_index = 0;
           int k = 0;
@@ -125,11 +98,30 @@ class CTRNN {
             return ConnectionWeight(from,to);
           }
         }
+
+        void SetArbDParam(int i, double value) {
+          int par_index = 0;
+          int k = 0;
+          while (k < i){
+            par_index++;
+            if (plasticitypars(par_index) == 1){
+              k++;
+            }
+          }
+          if (par_index <= size){
+            SetNeuronBias(par_index,value);
+          }
+          else{
+            par_index --; //treat as if were zero indexing
+            int from = floor(par_index/size); //comes out in one indexing because of the biases
+            int to = par_index % size;
+            to ++; //change to one indexing
+            SetConnectionWeight(from,to,value);
+          }
+        }
       
-        // -- NEW
         double NeuronRho(int i) {return rhos[i];};
         void SetNeuronRho(int i, double value) {rhos[i] = value;};
-        void ShiftedRho(bool tf){shiftedrho = tf;};
         double PlasticityLB(int i) {return l_boundary[i];};
         void SetPlasticityLB(int i, double value) {
           if (value <0){
@@ -139,13 +131,14 @@ class CTRNN {
             value = 1;
           }
           l_boundary(i) = value;
-          } //putting clipping here just to be safe
+          //clipping copied here for safety
+        }
         double PlasticityUB(int i) {return u_boundary[i];};
         void SetPlasticityUB(int i, double value) {
-          //must always be used after SetPlasticityLB
           if (value < 0){
             value = 0;
           }
+          //must be used *after* PlasticityLB has been correctly set for proper protections
           else if (value < l_boundary[i]){
             value = l_boundary[i];
           }
@@ -153,33 +146,26 @@ class CTRNN {
             value = 1;
           }
           u_boundary(i) = value;
-          } //putting clipping here just to be safe
+        } //putting clipping here just to be safe
         double NeuronBiasTimeConstant(int i) {return tausBiases[i];};
         void SetNeuronBiasTimeConstant(int i, double value) {tausBiases[i] = value; RtausBiases[i] = 1/value;};
         double ConnectionWeightTimeConstant(int from, int to) {return tausWeights[from][to];};
         void SetConnectionWeightTimeConstant(int from, int to, double value) {tausWeights[from][to] = value; RtausWeights[from][to] = 1/value;};
         int SlidingWindow(int i) {return windowsize[i];};
         // Built in protections against changing step sizes -- entered SW is always time-based
-        void SetSlidingWindow(int i, double windsize, double dt) 
-        {
-          windowsize(i)=1+int(windsize/dt);
-        };
-        void SetMaxavg(int i, double a) {maxavg[i] = a;};
-        void SetMinavg(int i, double a) {minavg[i] = a;};
-        // --
-        void LesionNeuron(int n)
-        {
-            for (int i = 1; i<= size; i++) {
-                SetConnectionWeight(i,n,0);
-                SetConnectionWeight(n,i,0);
-            }
+        void SetSlidingWindow(int i, double windsize, double dt) {windowsize(i)=1+int(windsize/dt);};
+        void DetectionReset(void){
+          mindetected.FillContents(1.0);
+          maxdetected.FillContents(0.0);
+        }
+        void PrintMaxMinDetected(void){
+          cout << "Minimum detected:" << mindetected << endl;
+          cout << "Maximum detected:" << maxdetected << endl;
         }
         void SetCenterCrossing(void);
-        istream& SetHPPhenotype(istream& is, double dt, bool range_encoding);
-        TVector<double>& SetHPPhenotype(TVector<double>& phenotype, double dt, bool range_encoding);
+        istream& SetHPPhenotype(istream& is, double dt);
+        TVector<double>& SetHPPhenotype(TVector<double>& phenotype, double dt);
         void WriteHPGenome(ostream& os);
-        void SetHPPhenotypebestind(istream& is, double dt, bool range_encoding);
-        void PrintMaxMinAvgs(void);
 
         // Input and output
         friend ostream& operator<<(ostream& os, CTRNN& c);
@@ -188,6 +174,7 @@ class CTRNN {
         friend TVector<double>& operator>>(TVector<double>& phen, CTRNN& c);
 
         // Control
+        void WindowInitialize(void);
         void WindowReset(void);
         void RandomizeCircuitState(double lb, double ub);
         void RandomizeCircuitState(double lb, double ub, RandomState &rs);
@@ -201,11 +188,11 @@ class CTRNN {
         int size, stepnum;
         TVector<int> windowsize, plasticitypars, plasticneurons, outputhiststartidxs; // NEW for AVERAGING
         double wr, br; // NEWER for CAPPING
-        int max_windowsize, num_pars_changed;
-        bool adaptbiases, adaptweights, shiftedrho;
+        int max_windowsize, num_pars_changed, num_neurons_plastic;
+        bool adaptbiases, adaptweights;
         TVector<double> states, outputs, biases, gains, taus, Rtaus, externalinputs;
-        TVector<double> rhos, tausBiases, RtausBiases, l_boundary, u_boundary, minavg, maxavg; // NEW
-        TVector<double> avgoutputs, sumoutputs, outputhist; // NEW for AVERAGING, change outputhist into a vector
+        TVector<double> rhos, tausBiases, RtausBiases, l_boundary, u_boundary, mindetected, maxdetected; // NEW
+        TVector<double> avgoutputs, sumoutputs, outputhist; // Note outputhist is a vector instead of a matrix, where all neuron histories are concatenated
         TMatrix<double> weights;
         TMatrix<double> tausWeights, RtausWeights; // NEW
         void SetPlasticityPars(TVector<int>& plasticpars){
@@ -216,25 +203,22 @@ class CTRNN {
           for(int i=1;i<=size;i++){
             //check biases
             plasticneurons[i] = plasticitypars[i];
-            if (plasticitypars[i] == 1){adaptbiases = true;}
-          }
-
-          for(int i=size+1;i<=plasticitypars.UpperBound();i++){
-            if (plasticitypars[i] == 1) {adaptweights = true;}
-          }
-          //determine which neurons need to have ranges and windows
-          for(int i=1;i<=size;i++){
-            //check incoming weights if not already flagged
-            if (plasticitypars[i] == 0){
-              for (int j=0;j<=(plasticitypars.UpperBound()-i-size);j+=size){
-                if (plasticitypars[size+i+j] == 1){
-                  plasticneurons[i] = 1;
-                  break;
-                }
+            if (plasticitypars[i] == 1)
+              {
+                adaptbiases = true;
+                plasticneurons[i] = 1;
               }
-            }
+          }
+          //check weights
+          for(int i=size+1;i<=plasticitypars.UpperBound();i++){
+            if (plasticitypars[i] == 1) 
+              {
+                adaptweights = true;
+                plasticneurons[((i - 1) % size) + 1] = 1;
+              }
           }
           num_pars_changed = plasticpars.Sum();
+          num_neurons_plastic = plasticneurons.Sum();
         };
-        // TVector<double> TempStates,TempOutputs;
 };
+#endif

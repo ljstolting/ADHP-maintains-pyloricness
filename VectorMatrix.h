@@ -4,7 +4,8 @@
 // RDB 7/24/95
 // ********************************
 
-#pragma once
+#ifndef VectorMatrix_h
+#define VectorMatrix_h
 
 #include <iostream>
 #include <fstream>
@@ -512,3 +513,5 @@ istream& operator>>(istream& is, TMatrix<EltType>& m)
 	}
 	return is;
 }
+
+#endif

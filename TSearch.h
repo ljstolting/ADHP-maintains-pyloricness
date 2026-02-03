@@ -1,13 +1,14 @@
 // *****************************
-// "Evolutionary" search classes
+// Evolutionary search classes
 // *****************************
+
+#ifndef TSearch_h
+#define TSearch_h
 
 // Uncomment the following line to enable multithreading
 // #define THREADED_SEARCH
 // #define THREAD_COUNT 16
 
-
-#pragma once
 
 #include "VectorMatrix.h"
 #include "random.h"
@@ -85,7 +86,7 @@ class TSearch {
 		// Basic Accessors
 		int VectorSize(void) {return vectorSize;};
 		void SetVectorSize(int NewSize);
-    void SetRandomSeed(long seed) {rs.SetRandomSeed(seed);};
+    	void SetRandomSeed(long seed) {rs.SetRandomSeed(seed);};
 		// Search Mode Accessors
 		TSelectionMode SelectionMode(void) {return SelectMode;};
 		void SetSelectionMode(TSelectionMode newmode) {SelectMode = newmode;};
@@ -143,9 +144,9 @@ class TSearch {
 		void ExecuteSearch(bool CC);
 		void ResumeSearch(void);
 		// Input and output
-    void WriteCheckpointFile(void);
-    void ReadCheckpointFile(void);
-    //friend ostream& operator<<(ostream& os, TSearch& s);
+		void WriteCheckpointFile(void);
+		void ReadCheckpointFile(void);
+		//friend ostream& operator<<(ostream& os, TSearch& s);
 		//friend istream& operator>>(istream& is, TSearch& s);
 
 	private:
@@ -165,7 +166,7 @@ class TSearch {
 		void RandomizePopulation(void);
 		void CenterCrossingPopulation(int CTRNNsize, double parmapmin, double parmapmax);
 		double EvaluateVector(TVector<double> &Vector, RandomState &rs);
-    friend void *EvaluatePopulationRange(void *arg);
+    	friend void *EvaluatePopulationRange(void *arg);
 		void EvaluatePopulation(int start = 1);
 		void SortPopulation(void);
 		void UpdatePopulationFitness(void);
@@ -223,3 +224,5 @@ class TSearch {
 // A range specification structure for threaded evaluation
 
 struct PopRangeSpec {TSearch *search; int start; int end;};
+
+#endif

@@ -3,8 +3,8 @@
 //
 // RDB 2/95
 // *******************************
-
-#pragma once
+#ifndef random_h
+#define random_h
 
 #include "VectorMatrix.h"
 #include <fstream>
@@ -74,3 +74,4 @@ public:
   int gaussian_flag;
   double gX1, gX2;
 };
+#endif

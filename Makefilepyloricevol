@@ -1,0 +1,19 @@
+CXX ?= g++
+CXXFLAGS += -O3 -pthread
+LDFLAGS  += -pthread
+
+main: mainpyloricevol.o random.o CTRNN.o TSearch.o pyloric.o
+	$(CXX) $(LDFLAGS) -o main mainpyloricevol.o random.o CTRNN.o TSearch.o pyloric.o
+random.o: random.cpp random.h VectorMatrix.h
+	$(CXX) $(CXXFLAGS) -c random.cpp
+CTRNN.o: CTRNN.cpp CTRNN.h random.h VectorMatrix.h
+	$(CXX) $(CXXFLAGS) -c CTRNN.cpp
+TSearch.o: TSearch.cpp TSearch.h random.h VectorMatrix.h
+	$(CXX) $(CXXFLAGS) -c TSearch.cpp
+pyloric.o: pyloric.cpp pyloric.h CTRNN.h VectorMatrix.h
+	$(CXX) $(CXXFLAGS) -c pyloric.cpp
+mainpyloricevol.o: mainpyloricevol.cpp random.h CTRNN.h TSearch.h pyloric.h
+	$(CXX) $(CXXFLAGS) -c mainpyloricevol.cpp
+.PHONY: clean
+clean:
+	$(RM) *.o main

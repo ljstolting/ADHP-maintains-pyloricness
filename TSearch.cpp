@@ -1,25 +1,8 @@
 // *******************************************************************************
 // Methods for the evolutionary search class TSearch
-//
-// RDB
-//  1/99 - Created
-//  5/07 - Added binary checkpoint files (with contributions from Chad Seys)
-//  1/08 - Added multithreaded evaluation (with contributions from Chad Seys and Paul Williams)
-//
-// TO DO
-//   1. Abstract TSearch over the type of individuals, so that more than just
-//      real vectors can be searched
-//   2. Define specialized support (either a subclass of TSearch or of Individual)
-//      for evolving CTRNNs. Features might include support for setting parameter
-//      ranges, seeding w/ center-crossing, setting up symmetric circuits,
-//      automating search-to-CTRNN parameter mapping, etc.
-//   3. Add support for co-evolution by allowing two search objects to
-//      interact with one another during evolution.  Much of this can probably
-//      just be handled by making both search objects global and having each
-//      evaluation function refer to the population in the other object.
-//      However, the generations of the search objects must also be interleaved.
-//      For example, we could have another function that kept reseting MaxGens
-//      and calling ExecuteSearch for each object.
+
+// Contributors:
+// Randall D. Beer, Chad Seys, Paul Williams, Lindsay Stolting
 // *******************************************************************************
 
 #include "TSearch.h"
@@ -427,10 +410,10 @@ void TSearch::CenterCrossingPopulation(int N, double parmin, double parmax)
 
 void TSearch::UpdatePopulationStatistics(void)
 {
-	register int i;
+	int i;
 	double total = 0;
 	int bestindex = 1;
-	register double perf;
+	double perf;
 
 	// Collect various info about the current population
 	MinPerf = 1E10;
