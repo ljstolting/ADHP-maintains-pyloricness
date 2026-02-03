@@ -4,6 +4,8 @@
 #ifndef CTRNN_h
 #define CTRNN_h
 
+const double StepSize = 0.05;        //THE MASTER LOCATION TO CHANGE STEP SIZE FOR ALL SIMULATIONS
+
 // Uncomment the following line for table-based fast sigmoid w/ linear interpolation
 //#define FAST_SIGMOID
 

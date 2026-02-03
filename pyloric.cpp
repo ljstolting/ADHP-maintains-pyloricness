@@ -8,8 +8,8 @@
 #include <iostream>
 #include <cmath>
 
-//Take an output history matrix and return (# oscillating neurons, LPstart, LPend, PYstart, PYend, PDstart, PDend, period) in that order, in time units, relative to PDstart
-void BurstTimesfromOutputHist(TMatrix<double> &OutputHistory, TVector<double> &features){
+//Take an output history matrix and populate (# oscillating neurons, LPstart, LPend, PYstart, PYend, PDstart, PDend, period) in that order, in time units, relative to PDstart
+void BurstTimesfromOutputHist(TMatrix<double> &OutputHistory, TVector<double> &features, bool debug){
 	features.FillContents(0);
 
 	int N = OutputHistory.ColumnUpperBound();
@@ -21,7 +21,6 @@ void BurstTimesfromOutputHist(TMatrix<double> &OutputHistory, TVector<double> &f
 
 	// Step through time series until you identify 3 PD starts (capping 2 full cycles), keeping track of whether each other neuron crossed the threshold or not
 	int tstep = 1;
-	double t = StepSize;
 	int PDstartcount = 0;
 	TVector<int> PDstarts(1,3);
 	PDstarts.FillContents(0);
@@ -31,7 +30,6 @@ void BurstTimesfromOutputHist(TMatrix<double> &OutputHistory, TVector<double> &f
 			if (OutputHistory[tstep][i] > maxoutput(i)) {maxoutput(i)=OutputHistory[tstep][i];}
 			if (OutputHistory[tstep][i] < minoutput(i)) {minoutput(i)=OutputHistory[tstep][i];}
 		}
-		// trajfile << Agent.NeuronOutput(1) << " " << Agent.NeuronOutput(2) << " " << Agent.NeuronOutput(3) << endl;
 
 		//Check for PD start
 		if (OutputHistory(tstep,3) < burstthreshold && OutputHistory(tstep+1,3) > burstthreshold){
@@ -39,11 +37,10 @@ void BurstTimesfromOutputHist(TMatrix<double> &OutputHistory, TVector<double> &f
 			PDstarts[PDstartcount] = tstep;
 		}
 		tstep += 1;
-		t += StepSize;
 	}
 
 	for (int i = 1; i <= N; i += 1) {
-		// SHORT HAND FOR ALL NEURONS OSCILLATING APPRECIABLY
+		// Do all neurons cross the burst threshold?
 		if (minoutput[i]<(burstthreshold)) {
 			if (maxoutput[i]>burstthreshold) {
 				features[1] += 1;
@@ -51,19 +48,14 @@ void BurstTimesfromOutputHist(TMatrix<double> &OutputHistory, TVector<double> &f
 		}
 	}
 	
-	//list of conditions that return zero fitness because they preclude accurately calculating the burst start and end times (assumptions)
-	if (features[1] < 3){
-		// cout << "not all neurons cross burst threshold";
-		return;
-	}
+	//list of conditions that return zero fitness because they preclude accurately calculating the burst start and end times
 	if (PDstartcount < 3){
-		cout << "unable to find two full cycles; may want to increase transient, lengthen runtime, or speed up slowest timescale" << endl;
-		// cout << features << endl;
+		if (debug) {cout << "unable to find two full cycles; may want to increase transient or lengthen runtime" << endl;}
 		return;
 	}
 	// at the two points where PD crosses up, are the other two neurons approximately in the same place?
 	if ((abs(OutputHistory(PDstarts[1],1) - OutputHistory(PDstarts[2],1))>tolerance)||(abs(OutputHistory(PDstarts[1],2) - OutputHistory(PDstarts[2],2))>tolerance)){
-		cout << "Too many PD bursts found in one cycle - suspected multiperiodicity"<<endl;
+		if (debug) {cout << "Multiple bursts seem to appear in one cycle"<<endl;}
 		return;
 	}
 	
@@ -75,13 +67,13 @@ void BurstTimesfromOutputHist(TMatrix<double> &OutputHistory, TVector<double> &f
 	int PYstart = 0;
 	int PYstartcount = 0;
 	int PYend = 0;
+	//starting from PDstart, scroll forward to find PDend, LPstart, PYstart
 	for (int step=PDstarts(1); step<=PDstarts(2); step ++){
 		if (PDendcount == 0){
 			if (OutputHistory(step,3)>burstthreshold){
 				if (OutputHistory(step+1,3)<burstthreshold){
 					PDend = step;
 					PDendcount ++;
-					//cout << "PDend";
 				}
 			}
 		}
@@ -90,7 +82,6 @@ void BurstTimesfromOutputHist(TMatrix<double> &OutputHistory, TVector<double> &f
 				if (OutputHistory(step+1,1)>burstthreshold){
 					LPstart = step;
 					LPstartcount ++;
-					// cout << "LPstart: " << LPstart;
 				}
 			}
 		}
@@ -99,36 +90,41 @@ void BurstTimesfromOutputHist(TMatrix<double> &OutputHistory, TVector<double> &f
 				if (OutputHistory(step+1,2)>burstthreshold){
 					PYstart = step;
 					PYstartcount ++;
-					//cout << "PYstart";
 				}
 			}
 		}
 	}
+	//starting from LPstart, find where LP ends
 	if (LPstartcount == 1){
 		for (int step=LPstart;step<=PDstarts(3);step++){
 			if (OutputHistory(step,1)>burstthreshold){
 				if (OutputHistory(step+1,1)<burstthreshold){
 					LPend = step;
-					//cout << "LPend";
 					break;
 				}
 			}
 		}
 	}
-	else{cout << "Too few or too many LP bursts found in one cycle" << endl; return;}
+	else{
+		if (debug) {cout << "Too few or too many LP bursts found in one cycle" << endl;}
+		return;
+		}
 
+	//starting from PYstart, find where PY ends
 	if (PYstartcount == 1){
 		for (int step=PYstart;step<=PDstarts(3);step++){
 			if (OutputHistory(step,2)>burstthreshold){
 				if (OutputHistory(step+1,2)<burstthreshold){
 					PYend = step;
-					//cout << "PYend" << endl;
 					break;
 				}
 			}
 		}
 	}
-	else {cout << "Too few or too many PY bursts found in one cycle" << endl; return;}
+	else {
+		if (debug) {cout << "Too few or too many PY bursts found in one cycle" << endl;}
+		return;
+		}
 
 	double period = (PDstarts[2] - PDstarts[1])*StepSize;
 
@@ -145,7 +141,7 @@ void BurstTimesfromOutputHist(TMatrix<double> &OutputHistory, TVector<double> &f
 }
 
 //take the vector of rhythm features that are output by the previous function and return pyloric fitness, with a particular fitness awarding system
-double PyloricFitFromFeatures(TVector<double> &FeatureVect){
+double PyloricFitFromFeatures(TVector<double> &FeatureVect, bool debug){
 	double fitness = 0.0;
 
 	double num_oscillating = FeatureVect[1];
@@ -157,78 +153,34 @@ double PyloricFitFromFeatures(TVector<double> &FeatureVect){
 	double PDend = FeatureVect[7];
 	double period = FeatureVect[8];
 
+	//currently redundant but keeping for clarity
 	double LPdelay = LPstart-PDstart;
 	double PYdelay = PYstart-PDstart;
-
-	// cout << "before " << FeatureVect << endl;
 
 	//number neurons oscillating
 	int criteria = int(num_oscillating);
 	
-	if(legacy){
-		// Recorrect to ensure start < end
-		for (int i=2; i <= 6; i+=2){
-			if (FeatureVect(i) > FeatureVect(i+1)){
-				FeatureVect(i+1) = FeatureVect(i+1) + FeatureVect(8);
-			}
-		}
-		double LPstart = FeatureVect[2];
-		double LPend = FeatureVect[3];
-		double PYstart = FeatureVect[4];
-		double PYend = FeatureVect[5];
-		double PDstart = FeatureVect[6];
-		double PDend = FeatureVect[7];
-
-		// 	ORDERING CRITERIA
-		// 
-		if (LPstart <= PYstart){
-			// cout << "order1" << endl;
-			criteria += 1;
-		}
-		if (LPend <= PYend){
-			// cout << "order2" << endl;
-			criteria += 1;
-		}
-		if (PDend <= LPstart){
-			// cout << "order3" << endl;
-			criteria += 1;
+	//first adjust relative to LP
+	for(int i = 7;i >= 2;i--){
+		FeatureVect[i] = FeatureVect[i] - FeatureVect[2];
+		if (FeatureVect[i] < 0){
+			FeatureVect[i] = FeatureVect[i] + period;
 		}
 	}
 
-	else{
-		//first adjust relative to LP
-		for(int i = 7;i >= 2;i--){
-			FeatureVect[i] = FeatureVect[i] - FeatureVect[2];
-			if (FeatureVect[i] < 0){
-				FeatureVect[i] = FeatureVect[i] + period;
-			}
-		}
-		LPstart = FeatureVect[2];
-		LPend = FeatureVect[3];
-		PYstart = FeatureVect[4];
-		PYend = FeatureVect[5];
-		PDstart = FeatureVect[6];
-		PDend = FeatureVect[7];
-
-		// cout << "PDstart " << PDstart << " PDend " << PDend << endl << ((PDstart<PDend) && (PYstart<PYend)) << endl;
-
-		//Check whether PYstart<PYend and PDstart<PDend (none of them span LPstart)
-		if ((PDstart<PDend) && (PYstart<PYend)){
-			criteria += 1;
-			// cout << criteria << endl;
-		}
-		if (PYstart<LPend){
-			criteria += 1;
-			// cout << criteria << endl;
-		}
-		if (LPend<PYend){
-			criteria += 1;
-			// cout << criteria << endl;
-		}
+	//Check whether PYstart<PYend and PDstart<PDend (none of them span LPstart)
+	if ((PDstart<PDend) && (PYstart<PYend)){
+		criteria += 1;
 	}
+	if (PYstart<LPend){
+		criteria += 1;
+	}
+	if (LPend<PYend){
+		criteria += 1;
+	}
+	
 
 	fitness += (criteria * scaling_factor);
-	// cout << fitness << endl;
 
 	//additional fitness for conforming to timing averages
 	if (timing_award && (criteria == 6)){
@@ -241,7 +193,7 @@ double PyloricFitFromFeatures(TVector<double> &FeatureVect){
 		double PDburstlen = PDend-PDstart;
 		double PDdutycycle = PDburstlen/period; //burstduration/period
 		double PDdutycyclezscore = abs(PDdutycycle - .385)/.040;
-		//taking the delay from the original, pd-centric timing for alignment with the paper
+		//taking the delay from the original, pd-centric timing for alignment with Prinz et al. (2004)
 		double LPstartphase = LPdelay/period; //delay/period
 		double LPstartphasezscore = abs(LPstartphase - .533)/.054;
 		double PYstartphase = PYdelay/period; //delay/period
@@ -251,14 +203,12 @@ double PyloricFitFromFeatures(TVector<double> &FeatureVect){
 		fitness += 1/(average);
 	}
 	
-	// cout << "fitness" << fitness;
 	return fitness;
 }
 
 //Test pyloric performance of a circuit, which is assumed to be already equilibrated
-double PyloricPerformance(CTRNN &Agent)
+double PyloricPerformance(CTRNN &Agent, bool debug)
 {
-	// cout << "6" << Agent.biases << endl;
 	int N = Agent.CircuitSize();
 	TMatrix<double> OutputHistory;
 	OutputHistory.SetBounds(1,TestSteps,1,N);
@@ -270,9 +220,7 @@ double PyloricPerformance(CTRNN &Agent)
 	maxoutput.FillContents(0.0);
 	TVector<double> minoutput(1,N);
 	minoutput.FillContents(1.0);
-	// cout << "7" << Agent.biases << endl;
 
-	// Run the circuit to calculate Pyloric fitness while HP either on or off depending on global setting.
 	int t = 0;
 	for (double time = StepSize; time <= TestDuration; time += StepSize) {
 		t += 1;
@@ -281,35 +229,21 @@ double PyloricPerformance(CTRNN &Agent)
 			if (Agent.NeuronOutput(i) > maxoutput[i]) {maxoutput[i]=Agent.NeuronOutput(i);}
 			if (Agent.NeuronOutput(i) < minoutput[i]) {minoutput[i]=Agent.NeuronOutput(i);}
 		}
-		Agent.EulerStep(StepSize,HPtest);
+		Agent.EulerStep(StepSize,ADHPtest); //ADHP either on or off during test depending on external setting
 	}
 
 	TVector<double> features(1,8);
-	BurstTimesfromOutputHist(OutputHistory, features);
-	// cout << features << endl;
+	BurstTimesfromOutputHist(OutputHistory, features, debug);
 
-	fitness = PyloricFitFromFeatures(features);
-
-	return fitness;
-}
-
-//TO DO: remove this function and make sure that all calls to PyloricPerformance equilibrate first where necessary
-//Overload which allows the circuit to equilibrate for some length of time before testing performance
-double PyloricPerformance(CTRNN &Agent, double TransientDur)
-{
-	//Rule of thumb: always initialize circuit and states before testing performance
-
-	// Run the circuit for an initial transient; HP is on or off (depending on global setting) and fitness is not evaluated
-	for (double t = StepSize; t <= TransientDur; t += StepSize) {
-		Agent.EulerStep(StepSize,HPequilibrate);
-	}
-
-	double fitness = PyloricPerformance(Agent);
+	fitness = PyloricFitFromFeatures(features, debug);
 
 	return fitness;
 }
 
-//overload but output the neuron trajectories to a file and the burst start/endpoints to another file. Assumes network already equilibrated
+// overload but output the neuron trajectories to a file 
+// and in another file the burst start/endpoints (LPstart, LPend, PYstart, PYend, PDstart, PDend, period), 
+// along with # oscillating neurons and fitness
+
 double PyloricPerformance(CTRNN &Agent, ofstream &trajfile, ofstream &burstfile){
 	int N = Agent.CircuitSize();
 	TMatrix<double> OutputHistory;
@@ -334,15 +268,15 @@ double PyloricPerformance(CTRNN &Agent, ofstream &trajfile, ofstream &burstfile)
 			trajfile << Agent.NeuronOutput(i) << " ";
 		}
 		trajfile << endl;
-		Agent.EulerStep(StepSize,HPtest);
+		Agent.EulerStep(StepSize,ADHPtest);
 	}
 
 	TVector<double> features(1,8);
 	BurstTimesfromOutputHist(OutputHistory, features);
-	burstfile << features;
-
+	burstfile << features[2] << " " << features[3] << " " << features[4] << " " << features[5] << " " << features[6] << " " << features[7] << " " << features[8] << endl;
+	burstfile << int(features[1]) << endl;
 	fitness = PyloricFitFromFeatures(features);
-	// cout << "higher fit:" << fitness << endl;
+	burstfile << fitness << endl;
 
 	return fitness;
 }

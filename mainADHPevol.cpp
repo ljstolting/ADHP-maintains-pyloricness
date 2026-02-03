@@ -25,7 +25,6 @@ const double CROSSPROB = 0.0;
 const double EXPECTED = 1.1;
 const double ELITISM = 0.1;
 const double pyloric_boost = 25; //fitness to add for each instance of full pyloric recovery
-const bool seed_center_crossing = false; //initialize the population with center-crossing networks?
 
 // Nervous system params
 const int N = 3;
@@ -300,7 +299,7 @@ int main (int argc, const char* argv[])
 	s.SetEvaluationFunction(HPFitnessFunction);
 
 	// Execute the search
-	s.ExecuteSearch(seed_center_crossing);
+	s.ExecuteSearch(false);
 	
 	Evolfile.close();
 	BestIndividualsFile.close();

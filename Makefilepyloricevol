@@ -12,7 +12,7 @@ TSearch.o: TSearch.cpp TSearch.h random.h VectorMatrix.h
 	$(CXX) $(CXXFLAGS) -c TSearch.cpp
 pyloric.o: pyloric.cpp pyloric.h CTRNN.h VectorMatrix.h
 	$(CXX) $(CXXFLAGS) -c pyloric.cpp
-mainpyloricevol.o: mainpyloricevol.cpp random.h CTRNN.h TSearch.h pyloric.h
+mainpyloricevol.o: mainpyloricevol.cpp random.h CTRNN.h TSearch.h pyloric.h VectorMatrix.h
 	$(CXX) $(CXXFLAGS) -c mainpyloricevol.cpp
 .PHONY: clean
 clean:
