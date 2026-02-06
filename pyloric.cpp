@@ -48,12 +48,13 @@ void BurstTimesfromOutputHist(TMatrix<double> &OutputHistory, TVector<double> &f
 		}
 	}
 	
-	//list of conditions that return zero fitness because they preclude accurately calculating the burst start and end times
+	//list of conditions that return zero (undefined) fitness because they preclude accurately calculating the burst start and end times
+	// could also have chosen to have them return fitness according to # of neurons bursting
 	if (PDstartcount < 3){
 		if (debug) {cout << "unable to find two full cycles; may want to increase transient or lengthen runtime" << endl;}
 		return;
 	}
-	// at the two points where PD crosses up, are the other two neurons approximately in the same place?
+	// at the first two points where PD crosses up, are the other two neurons approximately in the same place?
 	if ((abs(OutputHistory(PDstarts[1],1) - OutputHistory(PDstarts[2],1))>tolerance)||(abs(OutputHistory(PDstarts[1],2) - OutputHistory(PDstarts[2],2))>tolerance)){
 		if (debug) {cout << "Multiple bursts seem to appear in one cycle"<<endl;}
 		return;
@@ -145,38 +146,46 @@ double PyloricFitFromFeatures(TVector<double> &FeatureVect, bool debug){
 	double fitness = 0.0;
 
 	double num_oscillating = FeatureVect[1];
-	double LPstart = FeatureVect[2];
-	double LPend = FeatureVect[3];
-	double PYstart = FeatureVect[4];
-	double PYend = FeatureVect[5];
-	double PDstart = FeatureVect[6];
-	double PDend = FeatureVect[7];
 	double period = FeatureVect[8];
 
-	//currently redundant but keeping for clarity
-	double LPdelay = LPstart-PDstart;
-	double PYdelay = PYstart-PDstart;
+	//first, delays are calculated relative to the PDstart
+	double LPdelay = FeatureVect[2]-FeatureVect[7];
+	double PYdelay = FeatureVect[4]-FeatureVect[7];
 
-	//number neurons oscillating
-	int criteria = int(num_oscillating);
-	
-	//first adjust relative to LP
+	//then adjust everything relative to LP
 	for(int i = 7;i >= 2;i--){
 		FeatureVect[i] = FeatureVect[i] - FeatureVect[2];
 		if (FeatureVect[i] < 0){
 			FeatureVect[i] = FeatureVect[i] + period;
 		}
 	}
+	//variable names for clarity
+	double LPstart = FeatureVect[2];
+	double LPend = FeatureVect[3];
+	double PYstart = FeatureVect[4];
+	double PYend = FeatureVect[5];
+	double PDstart = FeatureVect[6];
+	double PDend = FeatureVect[7];
+
+	//number neurons oscillating
+	int criteria = int(num_oscillating);
+
+	if(debug){
+		cout << "Shifted Features Vector: " << endl << FeatureVect << endl;
+	}
 
 	//Check whether PYstart<PYend and PDstart<PDend (none of them span LPstart)
 	if ((PDstart<PDend) && (PYstart<PYend)){
 		criteria += 1;
+		if (debug){cout << "LP starts in silence"<<endl;}
 	}
 	if (PYstart<LPend){
 		criteria += 1;
+		if (debug){cout << "PY starts before LP ends"<<endl;}
 	}
 	if (LPend<PYend){
 		criteria += 1;
+		if (debug){cout << "LP ends before PY ends"<<endl;}
 	}
 	
 

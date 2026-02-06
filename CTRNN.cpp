@@ -142,8 +142,14 @@ void CTRNN::SetCircuitSize(int newsize)
   char plasticparsfname[] = "./plasticpars.dat"; //may have to change filepath if running from different directory
   ifstream plasticparsfile(plasticparsfname); 
   if (!plasticparsfile.is_open()) {
-    cerr << "Could not open file: " << plasticparsfname << endl;
-    exit(1);
+    ifstream plasticparsfile("../../plasticpars.dat"); 
+    if (!plasticparsfile.is_open()) {
+      ifstream plasticparsfile("../../../plasticpars.dat"); 
+      if(!plasticparsfile.is_open()) {
+        cerr << "Could not open file: " << plasticparsfname << endl;
+        exit(1);
+      }
+    }
   }
   plasticparsfile >> plasticitypars;
 

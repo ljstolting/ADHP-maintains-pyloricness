@@ -1,9 +1,11 @@
 # ADHP-maintains-pyloricness
 Organized code to accompany the paper: When can local activity-dependent homeostatic plasticity maintain circuit-level dynamic properties? (Stolting & Beer, 2026)
-(pre-print can be found here: )
-(stable code base can be found here: )
 
-The scripts and notebooks in this repository can be used to reproduce experiments and recreate figures in the corresponding paper. Due to file size restrictions, it does not include all necessary data, but does include our two datasets of 100 evolved pyloric CTRNNs and our dataset of evolved ADHP mechanisms. For parameter space data or further clarification, contact the corresponding author (lstoltin@iu.edu). 
+Pre-print: []()
+
+Stable link to this code base: []()
+
+The scripts and notebooks in this repository can be used to reproduce experiments and recreate figures in the corresponding paper. Due to file size restrictions, it does not include all pre-generated data, but does include our two datasets of 100 evolved pyloric CTRNNs and our dataset of evolved ADHP mechanisms. To receive data or for further clarification, contact the corresponding author, [Lindsay Stolting](mailto:lstoltin@iu.edu). 
 
 ## Prerequisite files
 The following files contain necessary functions, class definitions, and utilities.
